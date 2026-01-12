@@ -1,42 +1,44 @@
 import { Room, Client } from "colyseus";
-import { Schema, type, MapSchema } from "@colyseus/schema";
+import { CombatResolver } from "../combat/CombatResolver";
+import { CombatHeroState } from "../combat/CombatUnits";
 
-class Player extends Schema {
-    @type("string") id!: string;
-    @type("number") x!: number;
-    @type("number") z!: number;
-    @type("string") color!: string;
-}
+export class GameRoom extends Room {
+  private combat!: CombatResolver;
+  private heroes: CombatHeroState[] = [];
 
-class GameState extends Schema {
-  @type({ map: Player }) players = new MapSchema<Player>();
-}
-
-export class GameRoom extends Room<GameState> {
   onCreate() {
-    this.setState(new GameState());
-  }
-
-  onJoin(client: Client) {
-    const player = new Player();
-    player.id = client.sessionId;
-    player.x = Math.random() * 10 - 5;
-    player.z = Math.random() * 10 - 5;
-     // 🎨 couleur aléatoire
-    player.color = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-
-    this.state.players.set(client.sessionId, player);
-    console.log(`➕ Client connecté : ${client.sessionId}`);
-    this.broadcast("playerJoined", {
-        id: player.id,
-        x: player.x,
-        z: player.z,
-        color: player.color
+    this.setSimulationInterval((delta) => {
+      if (this.combat) {
+        this.combat.update(delta / 1000);
+      }
     });
   }
 
-  onLeave(client: Client) {
-    this.state.players.delete(client.sessionId);
-    console.log(`➖ Client déconnecté : ${client.sessionId}`);
+  onJoin(client: Client) {
+    const hero: CombatHeroState = {
+      id: client.sessionId,
+      isMercenary: false,
+      hp: 1000,
+      maxHp: 1000,
+      mana: 0,
+      isAlive: true,
+      stats: {
+        attack: 50,
+        attackSpeed: 1,
+        critChance: 0.1,
+        critMultiplier: 2,
+        dodgeChance: 0,
+        armor: 0,
+        magicResist: 0,
+        manaRegen: 0
+      },
+      cards: new Map()
+    };
+
+    this.heroes.push(hero);
+
+    if (this.heroes.length === 2) {
+      this.combat = new CombatResolver(this.heroes);
+    }
   }
 }
