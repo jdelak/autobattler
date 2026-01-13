@@ -2,7 +2,18 @@ import { CombatEventBus } from "../events/CombatEventBus";
 import { CombatHeroState } from "../CombatUnits";
 
 export class AttackResolver {
-  constructor(private eventBus: CombatEventBus) {}
+  constructor(
+    private eventBus: CombatEventBus
+  ) {
+    this.eventBus.subscribe("bonusAttack", (payload) => {
+      const { attacker, target } = payload as {
+        attacker: CombatHeroState;
+        target: CombatHeroState;
+      };
+
+      this.basicAttack(attacker, target, true);
+    });
+  }
 
   update(_: number, heroes: CombatHeroState[]) {
     if (heroes.length < 2) return;
@@ -10,7 +21,7 @@ export class AttackResolver {
     this.basicAttack(heroes[1], heroes[0]);
   }
 
-  basicAttack(attacker: CombatHeroState, defender: CombatHeroState) {
+  basicAttack(attacker: CombatHeroState, defender: CombatHeroState, isBonusAttack = false) {
     let damage = attacker.stats.attack;
     const crit = Math.random() < attacker.stats.critChance;
     if (crit) damage *= attacker.stats.critMultiplier;
@@ -28,7 +39,8 @@ export class AttackResolver {
         damage,
         isCritical: crit,
         isBasicAttack: true,
-        isUltimate: false
+        isUltimate: false,
+        isBonusAttack
       }
     });
   }
