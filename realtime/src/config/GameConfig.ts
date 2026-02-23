@@ -1,0 +1,6 @@
+export const GameConfig = {
+  MAX_FIGHT_DURATION: 30000,
+  TICK_RATE: 100,
+  MAX_DODGE_CAP: 0.9,
+  STACK_DECAY_PER_SECOND: 0.33
+}
